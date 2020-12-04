@@ -1,0 +1,4 @@
+sources:
+  "unknown":
+    url: "https://github.com/ps2dev/ps2sdk/archive/674b6f4b086fc2e98eadf4511d27d09365d36e3a.tar.gz"
+    sha256: "fac99102c0798797c44200974f9c0067dc75daede956f962c13a14cdb57d6bd8"

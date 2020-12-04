@@ -1,0 +1,8 @@
+--- newlib/doc/makedoc.c
++++ newlib/doc/makedoc.c
+@@ -42,2 +42,2 @@
+-extern PTR malloc();
+-extern PTR realloc();
++#include <stdlib.h>
++#include <string.h>
+

@@ -1,0 +1,60 @@
+name: Build conan ps2dev toolchains packages
+on:
+  pull_request:
+  push:
+  release:
+    types: published
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+#          - os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-python@v2
+      - name: 'Setup conan'
+        run: |
+          python -m pip install conan
+          conan config init
+          conan config set log.print_run_commands=True
+      - name: 'Add os=playstation2 + gcc.version=3.2 to .conan/settings.yml'
+        shell: python
+        run: |
+          import os, yaml
+          settings_path = os.path.expanduser('~/.conan/settings.yml')
+          yml = yaml.safe_load(open(settings_path))
+          yml['os']['playstation2'] = None
+          yml['compiler']['gcc']['version'].append('3.2')
+          yaml.safe_dump(yml, open(settings_path, 'w'))
+      - name: 'Create mingw profile'
+        if: ${{ matrix.os  == 'windows-latest' }}
+        shell: bash
+        run: |
+          cp profiles/mingw ~/.conan/profiles/default
+          conan create recipes/msys2-wrapper/all msys2-wrapper/unknown@  # FIXME: This is a workaround for setting CONAN_BASH_PATH
+      - name: 'Build ps2dev-ps2toolchain/unknown'
+        run: |
+          conan create recipes/ps2dev-ps2toolchain/all ps2dev-ps2toolchain/unknown@madebr/testing
+      - name: 'Build ps2dev-ps2sdk/unknown'
+        run: |
+          conan create recipes/ps2dev-ps2sdk/all ps2dev-ps2sdk/unknown@madebr/testing -pr:h profiles/playstation2 -pr:b default
+      - name: 'Login to bintray'
+        if: ${{ github.event_name  == 'push' && github.ref == 'refs/heads/master' }}
+        run: |
+          conan remote add madebr_ps2dev https://api.bintray.com/conan/madebr/ps2dev
+          conan user madebr -r madebr_ps2dev -p ${{ secrets.bintray_apikey }}
+      - name: 'Upload ps2toolchain artifact'
+        if: ${{ github.event_name  == 'push' && github.ref == 'refs/heads/master' }}
+        run: |
+          conan upload ps2dev-ps2toolchain/unknown@madebr/testing -r madebr_ps2dev --all
+      - name: 'Upload ps2sdk artifact'
+        if: ${{ github.event_name  == 'push' && github.ref == 'refs/heads/master' && matrix.os == 'ubuntu-latest' }}
+        run: |
+          conan upload ps2dev-ps2sdk/unknown@madebr/testing -r madebr_ps2dev --all

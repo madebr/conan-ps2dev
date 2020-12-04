@@ -1,0 +1,20 @@
+sources:
+  "unknown":
+    - url: "https://github.com/ps2dev/ps2toolchain/archive/bd23736f4be30ac87209c318ed09c46529ddcd35.tar.gz"
+      sha256: "75895fc17c172bae7c4ad2ff09b6e455c27b33f5e113d5dff019c1931d4ea9b8"
+    - url: "http://ftpmirror.gnu.org/binutils/binutils-2.14.tar.bz2"
+      sha256: "e20bdd49a0fb317959b410c1fe81269a620ec21207045d8a37cadea621be4b59"
+    - url: "http://ftpmirror.gnu.org/gcc/gcc-3.2.3/gcc-3.2.3.tar.bz2"
+      sha256: "9229434cfdfb79d3183149ac09e1093be642d4be377cc491e75c23b856243fda"
+    - url: "http://mirrors.kernel.org/sourceware/newlib/newlib-1.14.0.tar.gz"
+      sha256: "7db55671132c2943dbbdadfaa954915c23dbc329168575a42bb940ef4bf50a23"
+patches:
+  "unknown":
+    - base_path: "binutils"
+      patch_file: "ps2toolchain/patches/binutils-2.14-PS2.patch"
+    - base_path: "gcc"
+      patch_file: "ps2toolchain/patches/gcc-3.2.3-PS2.patch"
+    - base_path: "newlib"
+      patch_file: "ps2toolchain/patches/newlib-1.14.0-PS2.patch"
+    - base_path: "newlib"
+      patch_file: "patches/0003-newlib-extra.patch"
