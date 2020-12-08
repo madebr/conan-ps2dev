@@ -14,6 +14,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
     topics = "ps2", "toolchain", "binutils", "gcc", "newlib", "sony", "playstation", "ps2"
     settings = "os", "arch", "compiler", "build_type"
 
+    no_copy_source = True
     exports_sources = "patches/*"
 
     def source(self):
@@ -23,6 +24,9 @@ class Ps2devPs2ToolchainConan(ConanFile):
         tools.rename(glob.glob("binutils-*")[0], "binutils")
         tools.rename(glob.glob("gcc-*")[0], "gcc")
         tools.rename(glob.glob("newlib-*")[0], "newlib")
+
+        for patch in self.conan_data.get("patches", {}).get(self.version, []):
+            tools.patch(**patch)
 
     def build_requirements(self):
         if tools.os_info.is_windows and not tools.get_env("CONAN_BASH_PATH"):
@@ -70,9 +74,8 @@ class Ps2devPs2ToolchainConan(ConanFile):
                 exec {compile} cl -nologo -I"{inc}" ${{copts[@]}}
                 """).format(
                     compile=self.deps_user_info["automake"].compile.replace("\\", "/"),
-                    inc=self.build_folder.replace("\\", "/"),
+                    inc=self.source_folder.replace("\\", "/"),
             ))
-
 
             env = {
                 "CC": compile_wrapper,
@@ -114,7 +117,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
         tools.mkdir(build_folder)
         with tools.chdir(build_folder):
             self.output.info("Building binutils for target={}".format(target))
-            autotools.configure(args=conf_args, configure_dir=os.path.join(self.build_folder, "binutils"), build=build, host=host)
+            autotools.configure(args=conf_args, configure_dir=os.path.join(self.source_folder, "binutils"), build=build, host=host)
             autotools.make()
             autotools.install()
 
@@ -179,7 +182,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
             with tools.environment_append(env):
                 with tools.environment_append({"PATH": [os.path.join(self._ps2toolchain_path, target, "bin")]}):
                     self.output.info("Building gcc stage1 for target={}".format(target))
-                    autotools.configure(args=conf_args, configure_dir=os.path.join(self.build_folder, "gcc"), build=build, host=host)
+                    autotools.configure(args=conf_args, configure_dir=os.path.join(self.source_folder, "gcc"), build=build, host=host)
                     autotools.make()
                     autotools.install()
 
@@ -218,16 +221,13 @@ class Ps2devPs2ToolchainConan(ConanFile):
         with tools.chdir(build_folder):
             with tools.environment_append(env):
                 self.output.info("Building newlib for target={}".format(target))
-                autotools.configure(args=conf_args, configure_dir=os.path.join(self.build_folder, "newlib"), build=build, host=host)
+                autotools.configure(args=conf_args, configure_dir=os.path.join(self.source_folder, "newlib"), build=build, host=host)
                 autotools.make(args=["-j1"])
                 autotools.install()
 
     def build(self):
         if tools.cross_building(self.settings, skip_x64_x86=True):
             raise ConanInvalidConfiguration("This recipe does not support cross building")
-
-        for patch in self.conan_data.get("patches", {}).get(self.version, []):
-            tools.patch(**patch)
 
         with self._build_context():
             for target in ("ee", "iop", "dvp"):
@@ -238,10 +238,10 @@ class Ps2devPs2ToolchainConan(ConanFile):
             self._build_install_gcc("ee", 2)
 
     def package(self):
-        self.copy("LICENSE", src="ps2toolchain", dst=os.path.join("licenses", "ps2toolchain"))
-        self.copy("COPYING", src="binutils", dst=os.path.join("licenses", "binutils"))
-        self.copy("COPYING", src="gcc", dst=os.path.join("licenses", "gcc"))
-        self.copy("COPYING", src="newlib", dst=os.path.join("licenses", "newlib"))
+        self.copy("LICENSE", src=os.path.join(self.source_folder, "ps2toolchain"), dst=os.path.join("licenses", "ps2toolchain"))
+        self.copy("COPYING", src=os.path.join(self.source_folder, "binutils"), dst=os.path.join("licenses", "binutils"))
+        self.copy("COPYING", src=os.path.join(self.source_folder, "gcc"), dst=os.path.join("licenses", "gcc"))
+        self.copy("COPYING", src=os.path.join(self.source_folder, "newlib"), dst=os.path.join("licenses", "newlib"))
         if not os.path.isdir(os.path.join(self.package_folder, "bin")):
             raise Exception("This recipe does not support the '-kb' option of 'conan create'")
         for target in ("ee", "iop", "dvp"):
