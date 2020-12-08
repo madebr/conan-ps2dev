@@ -17,6 +17,7 @@ jobs:
             compiler: msvc
 
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
