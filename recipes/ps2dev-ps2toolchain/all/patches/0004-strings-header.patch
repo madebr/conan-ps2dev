@@ -1,0 +1,7 @@
+--- /dev/null
++++ strings.h
+@@ -0,0 +1,4 @@
++#ifndef STRINGS_CONAN_H
++#define STRINGS_CONAN_H
++#include <string.h>
++#endif

@@ -1,7 +1,9 @@
 from conans import AutoToolsBuildEnvironment, ConanFile, tools
 from conans.errors import ConanInvalidConfiguration
+import contextlib
 import glob
 import os
+import textwrap
 
 
 class Ps2devPs2ToolchainConan(ConanFile):
@@ -25,9 +27,64 @@ class Ps2devPs2ToolchainConan(ConanFile):
     def build_requirements(self):
         if tools.os_info.is_windows and not tools.get_env("CONAN_BASH_PATH"):
             self.build_requires("msys2/20200517")
+        if self.settings.compiler == "Visual Studio":
+            self.build_requires("automake/1.16.3")
 
     def package_id(self):
         del self.info.settings.compiler
+
+    @contextlib.contextmanager
+    def _build_context(self):
+        if self.settings.compiler == "Visual Studio":
+            compile_wrapper = os.path.join(self.build_folder, "compile_wrapper.sh").replace("\\", "/")
+            tools.save(compile_wrapper, textwrap.dedent("""\
+                #!/bin/sh
+                copts=()
+                setoutput=
+                calculated_output=
+                while test $# -gt 0; do
+                    case "$1" in
+                        *.c | *.C | *.cxx | *.cpp | *.cc | *.CC)
+                            calculated_output=$(echo -n "$1" | sed -e 's/\.c$/.o/g' | sed -e 's/\.cxx$/.o/g' | sed -e 's/\.cpp$/.o/g' | sed -e 's/\.cc$/.o/g' | sed -e 's/\.CC$/.o/g')
+                            copts+=("$1")
+                            ;;
+                        -o)
+                            copts+=("$1")
+                            shift
+                            setoutput="$1"
+                            copts+=("$1")
+                            ;;
+                        *)
+                            copts+=("$1")
+                            ;;
+                    esac
+                    shift
+                done
+
+                if [ "$setoutput" == "" ] && [ "$calculated_output" != "" ]; then
+                    copts+=("-o")
+                    copts+=("$calculated_output")
+                fi
+
+                echo "Executing  {compile} cl -nologo -I"{inc}" ${{copts[@]}}"
+                exec {compile} cl -nologo -I"{inc}" ${{copts[@]}}
+                """).format(
+                    compile=self.deps_user_info["automake"].compile.replace("\\", "/"),
+                    inc=self.build_folder.replace("\\", "/"),
+            ))
+
+
+            env = {
+                "CC": compile_wrapper,
+                "CPP": "{} -E".format(compile_wrapper),
+                "AR": "{} lib".format(self.deps_user_info["automake"].ar_lib.replace("\\", "/")),
+                "LD": "{}".format(compile_wrapper),
+            }
+            with tools.vcvars(self.settings):
+                with tools.environment_append(env):
+                    yield
+        else:
+            yield
 
     @property
     def _ps2toolchain_path(self):
@@ -172,12 +229,13 @@ class Ps2devPs2ToolchainConan(ConanFile):
         for patch in self.conan_data.get("patches", {}).get(self.version, []):
             tools.patch(**patch)
 
-        for target in ("ee", "iop", "dvp"):
-            self._build_install_binutils(target)
-        for target in ("ee", "iop"):
-            self._build_install_gcc(target, 1)
-        self._build_install_newlib("ee")
-        self._build_install_gcc("ee", 2)
+        with self._build_context():
+            for target in ("ee", "iop", "dvp"):
+                self._build_install_binutils(target)
+            for target in ("ee", "iop"):
+                self._build_install_gcc(target, 1)
+            self._build_install_newlib("ee")
+            self._build_install_gcc("ee", 2)
 
     def package(self):
         self.copy("LICENSE", src="ps2toolchain", dst=os.path.join("licenses", "ps2toolchain"))

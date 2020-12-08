@@ -12,6 +12,9 @@ jobs:
           - os: ubuntu-latest
           - os: macos-latest
           - os: windows-latest
+            compiler: mingw
+          - os: windows-latest
+            compiler: msvc
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,7 +37,7 @@ jobs:
           yml['compiler']['gcc']['version'].append('3.2')
           yaml.safe_dump(yml, open(settings_path, 'w'))
       - name: 'Create mingw profile'
-        if: ${{ matrix.os  == 'windows-latest' }}
+        if: ${{ matrix.os  == 'windows-latest' && matrix.compiler == 'mingw' }}
         shell: bash
         run: |
           cp profiles/mingw ~/.conan/profiles/default
