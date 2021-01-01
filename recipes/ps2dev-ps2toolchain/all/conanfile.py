@@ -89,14 +89,10 @@ class Ps2devPs2ToolchainConan(ConanFile):
         else:
             yield
 
-    @property
-    def _ps2toolchain_path(self):
-        return os.path.join(self.package_folder, "bin")
-
     def _build_install_binutils(self, target):
         autotools = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
         conf_args = [
-            "--prefix={}".format(os.path.join(self._ps2toolchain_path, target).replace("\\", "/")),
+            "--prefix={}".format(os.path.join(self.package_folder, target).replace("\\", "/")),
             "--disable-build-warnings",
             "--target={}".format(target),
         ]
@@ -124,7 +120,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
     def _build_install_gcc(self, target, stage):
         autotools = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
         conf_args = [
-            "--prefix={}".format(os.path.join(self._ps2toolchain_path, target).replace("\\", "/")),
+            "--prefix={}".format(os.path.join(self.package_folder, target).replace("\\", "/")),
             "--disable-build-warnings",
             "--target={}".format(target),
             "--with-newlib",
@@ -138,7 +134,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
         else:
             conf_args.extend([
                 "--enable-languages=c,c++",
-                "--with-headers={}".format(tools.unix_path(os.path.join(self._ps2toolchain_path, target, target, "include"))),
+                "--with-headers={}".format(tools.unix_path(os.path.join(self.package_folder, target, target, "include"))),
             ])
             ff = lambda a: not a.startswith("-m")
             env.update({
@@ -180,7 +176,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
         tools.mkdir(build_folder)
         with tools.chdir(build_folder):
             with tools.environment_append(env):
-                with tools.environment_append({"PATH": [os.path.join(self._ps2toolchain_path, target, "bin")]}):
+                with tools.environment_append({"PATH": [os.path.join(self.package_folder, target, "bin")]}):
                     self.output.info("Building gcc stage1 for target={}".format(target))
                     autotools.configure(args=conf_args, configure_dir=os.path.join(self.source_folder, "gcc"), build=build, host=host)
                     autotools.make()
@@ -190,7 +186,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
         ff = lambda a: not a.startswith("-m")
         autotools = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
         conf_args = [
-            "--prefix={}".format(os.path.join(self._ps2toolchain_path, target).replace("\\", "/")),
+            "--prefix={}".format(os.path.join(self.package_folder, target).replace("\\", "/")),
             "--target={}".format(target),
         ]
 
@@ -210,7 +206,7 @@ class Ps2devPs2ToolchainConan(ConanFile):
             }.get(str(self.settings.arch), str(self.settings.arch)))
 
         env = {
-            "PATH": [os.path.join(self._ps2toolchain_path, target, "bin")],
+            "PATH": [os.path.join(self.package_folder, target, "bin")],
             "CPPFLAGS_FOR_TARGET": "-G0",
         }
 
@@ -242,21 +238,23 @@ class Ps2devPs2ToolchainConan(ConanFile):
         self.copy("COPYING", src=os.path.join(self.source_folder, "binutils"), dst=os.path.join("licenses", "binutils"))
         self.copy("COPYING", src=os.path.join(self.source_folder, "gcc"), dst=os.path.join("licenses", "gcc"))
         self.copy("COPYING", src=os.path.join(self.source_folder, "newlib"), dst=os.path.join("licenses", "newlib"))
-        if not os.path.isdir(os.path.join(self.package_folder, "bin")):
-            raise Exception("This recipe does not support the '-kb' option of 'conan create'")
         for target in ("ee", "iop", "dvp"):
-            tools.rmdir(os.path.join(self._ps2toolchain_path, target, "info"))
-            tools.rmdir(os.path.join(self._ps2toolchain_path, target, "man"))
-            tools.rmdir(os.path.join(self._ps2toolchain_path, target, "share"))
+            if not os.path.isdir(os.path.join(self.package_folder, target)):
+                raise Exception("This recipe does not support the '-kb' option of 'conan create'")
+            tools.rmdir(os.path.join(self.package_folder, target, "info"))
+            tools.rmdir(os.path.join(self.package_folder, target, "man"))
+            tools.rmdir(os.path.join(self.package_folder, target, "share"))
             tools.remove_files_by_mask(os.path.join(self.package_folder, "bin", target, target, "lib"), "*.la")
 
     def package_info(self):
+        self.cpp_info.bindirs = []
         for target in ("ee", "iop", "dvp"):
-            bin_path = os.path.join(self._ps2toolchain_path, target, "bin")
+            self.cpp_info.bindirs.append(os.path.join("ee", "bin"))
+            bin_path = os.path.join(self.package_folder, target, "bin")
             self.output.info("Extending PATH environment variable: {}".format(bin_path))
             self.env_info.PATH.append(bin_path)
 
-        ps2dev = self._ps2toolchain_path
+        ps2dev = self.package_folder
         self.output.info("Settings PS2DEV environment variable: {}".format(ps2dev))
         self.env_info.PS2DEV = ps2dev
         self.user_info.PS2DEV = ps2dev

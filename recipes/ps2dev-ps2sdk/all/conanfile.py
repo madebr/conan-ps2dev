@@ -36,12 +36,8 @@ class Ps2devPs2sdkdevConan(ConanFile):
         os.rename(glob.glob("ps2sdk-*")[0], self._source_subfolder)
 
     @property
-    def _ps2sdk_relpath(self):
-        return "bin"
-
-    @property
     def _ps2sdk_path(self):
-        return os.path.join(self.package_folder, self._ps2sdk_relpath).replace("\\", "/")
+        return os.path.join(self.package_folder).replace("\\", "/")
 
     def _configure_autotools_args(self):
         if self._autotools:
@@ -89,7 +85,6 @@ class Ps2devPs2sdkdevConan(ConanFile):
         return " ".join("-L{}".format(os.path.join(self.package_folder, lib).replace("\\", "/")) for lib in self._rel_libdirs)
 
     def package_info(self):
-        self.cpp_info.bindirs = [os.path.join(self._ps2sdk_relpath, "bin")]
         self.cpp_info.includedirs = [
             os.path.join(self._ps2sdk_path, "common", "include"),
             os.path.join(self._ps2sdk_path, "ee", "include"),
