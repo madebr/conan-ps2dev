@@ -1,5 +1,5 @@
 [settings]
-os=playstation2
+os=Playstation2
 arch=mips
 compiler=gcc
 compiler.version=3.2

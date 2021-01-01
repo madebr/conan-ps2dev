@@ -9,7 +9,7 @@ import textwrap
 class Ps2devPs2ToolchainConan(ConanFile):
     name = "ps2dev-ps2toolchain"
     license = "GPL-2.0", "BSD-2-Clause"
-    url = "https://www.github.com/conan-io/conan-center-index"
+    url = "https://www.github.com/madebr/conan-ps2dev"
     description = "binutils+gcc+newlib toolchain for Sony(R) PlayStation 2"
     topics = "ps2", "toolchain", "binutils", "gcc", "newlib", "sony", "playstation", "ps2"
     settings = "os", "arch", "compiler", "build_type"

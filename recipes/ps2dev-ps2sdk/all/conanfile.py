@@ -7,7 +7,7 @@ import os
 class Ps2devPs2sdkdevConan(ConanFile):
     name = "ps2dev-ps2sdk"
     license = "AFL-2.0"
-    url = "https://www.github.com/conan-io/conan-center-index"
+    url = "https://www.github.com/madebr/conan-ps2dev"
     description = "PS2SDK is a collection of Open Source libraries used for developing applications on Sony's PlayStation 2 (PS2)."
     topics = "ps2", "sdk", "library", "sony", "playstation", "ps2"
     settings = "os", "arch", "compiler"
@@ -20,7 +20,7 @@ class Ps2devPs2sdkdevConan(ConanFile):
         return "source_subfolder"
 
     def configure(self):
-        if self.settings.os != "playstation2":
+        if self.settings.os != "Playstation2":
             raise ConanInvalidConfiguration("ps2dev-ps2sdk can only be built for playstation2")
         if self.settings.arch != "mips":
             raise ConanInvalidConfiguration("ps2dev-ps2sdk can only be built for the mips processor")
